@@ -1,0 +1,64 @@
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+type Query {
+    "Ambil semua pasien"
+    patients: [Patient!]! @all
+
+    "Cari pasien by ID"
+    patient(id: ID! @eq): Patient @find
+
+    "Cari pasien by nama (partial match)"
+    patientsByName(name: String! @where(operator: "like")): [Patient!]! @all
+
+    "Cari pasien by status"
+    patientsByStatus(status: String! @eq): [Patient!]! @all
+}
+
+type Mutation {
+    "Buat pasien baru"
+    createPatient(
+        name: String! @rules(apply: ["required", "string"])
+        gender: String! @rules(apply: ["required", "in:male,female"])
+        birth_date: String!
+        nik: String! @rules(apply: ["required", "unique:patients,nik"])
+        phone: String!
+        email: String @rules(apply: ["nullable", "email"])
+        address: String
+        blood_type: String
+        emergency_contact_name: String
+        emergency_contact_phone: String
+        status: String
+    ): Patient @create
+
+    "Update data pasien"
+    updatePatient(
+        id: ID!
+        name: String
+        phone: String
+        email: String
+        address: String
+        status: String
+        emergency_contact_name: String
+        emergency_contact_phone: String
+    ): Patient @update
+
+    "Deactivate pasien"
+    deletePatient(id: ID!): Patient @delete
+}
+
+type Patient {
+    id: ID!
+    name: String!
+    gender: String!
+    birth_date: String
+    nik: String!
+    phone: String
+    email: String
+    address: String
+    blood_type: String
+    emergency_contact_name: String
+    emergency_contact_phone: String
+    status: String!
+    created_at: DateTime
+    updated_at: DateTime
+}

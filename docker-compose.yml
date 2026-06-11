@@ -1,0 +1,158 @@
+version: '3.8'
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: rs_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - rs_network
+
+  patient-service:
+    build:
+      context: ./patient-service
+    container_name: rs_patient_service
+    ports:
+      - "8001:80"
+    environment:
+      APP_NAME: PatientService
+      APP_ENV: production
+      APP_KEY: base64:kh0o9Wi3s0R/0LAU4cIYKCxhLGNQWlxnpytZPPPAgRU=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8001
+      DB_CONNECTION: mysql
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_DATABASE: tubes_patient_service_db
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PREFIX: ""
+    depends_on:
+      - redis
+    networks:
+      - rs_network
+
+  doctor-service:
+    build:
+      context: ./doctor-service
+    container_name: rs_doctor_service
+    ports:
+      - "8002:80"
+    environment:
+      APP_NAME: DoctorService
+      APP_ENV: production
+      APP_KEY: base64:EcDFwnlaCK6UmGSxFVH+SPECL8mX8UzkAlJEKIizU3M=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8002
+      DB_CONNECTION: mysql
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_DATABASE: tubes_doctor_service_db
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PREFIX: ""
+    depends_on:
+      - redis
+    networks:
+      - rs_network
+
+  appointment-service:
+    build:
+      context: ./appointment-service
+    container_name: rs_appointment_service
+    ports:
+      - "8003:80"
+    environment:
+      APP_NAME: AppointmentService
+      APP_ENV: production
+      APP_KEY: base64:K0RSsPn1LAmL6H0SyVq9g3DRrO/vOWoEIWbXnIUZ2xg=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8003
+      DB_CONNECTION: mysql
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_DATABASE: tubes_appointment_service_db
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PREFIX: ""
+      PATIENT_SERVICE_URL: http://patient-service/api
+      DOCTOR_SERVICE_URL: http://doctor-service/api
+    depends_on:
+      - redis
+      - patient-service
+      - doctor-service
+    networks:
+      - rs_network
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: rs_notification_service
+    ports:
+      - "8004:80"
+    environment:
+      APP_NAME: NotificationService
+      APP_ENV: production
+      APP_KEY: base64:tedU2b4MisRu4Ki6ZjrAGBa8hS9tKSCA4Vf7mgtlGXI=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8004
+      DB_CONNECTION: mysql
+      DB_HOST: host.docker.internal
+      DB_PORT: 3306
+      DB_DATABASE: tubes_notif_service_db
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PREFIX: ""
+    depends_on:
+      - redis
+      - appointment-service
+    networks:
+      - rs_network
+
+  hasura-postgres:
+    image: postgres:15-alpine
+    container_name: rs_hasura_postgres
+    environment:
+      POSTGRES_DB: hasura_metadata
+      POSTGRES_USER: hasura
+      POSTGRES_PASSWORD: hasura123
+    networks:
+      - rs_network
+
+  hasura:
+    image: hasura/graphql-engine:v2.38.0
+    container_name: rs_hasura
+    ports:
+      - "8085:8080"
+    environment:
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://hasura:hasura123@hasura-postgres:5432/hasura_metadata
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+    depends_on:
+      - hasura-postgres
+      - redis
+    networks:
+      - rs_network
+
+networks:
+  rs_network:
+    driver: bridge
