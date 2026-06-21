@@ -19,4 +19,9 @@ class Patient extends Model
         'emergency_contact_phone',
         'status',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
 }

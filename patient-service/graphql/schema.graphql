@@ -1,8 +1,8 @@
 scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
 
 type Query {
-    "Ambil semua pasien"
-    patients: [Patient!]! @all
+    "Ambil semua pasien aktif"
+    patients: [Patient!]! @all(scopes: ["active"])
 
     "Cari pasien by ID"
     patient(id: ID! @eq): Patient @find
@@ -40,10 +40,10 @@ type Mutation {
         status: String
         emergency_contact_name: String
         emergency_contact_phone: String
-    ): Patient @update
+    ): PatientMutationResponse @field(resolver: "App\\GraphQL\\Mutations\\UpdatePatient")
 
-    "Deactivate pasien"
-    deletePatient(id: ID!): Patient @delete
+    "Deactivate pasien (soft delete)"
+    deletePatient(id: ID!): PatientMutationResponse @field(resolver: "App\\GraphQL\\Mutations\\DeletePatient")
 }
 
 type Patient {
@@ -61,4 +61,10 @@ type Patient {
     status: String!
     created_at: DateTime
     updated_at: DateTime
+}
+
+type PatientMutationResponse {
+    success: Boolean!
+    message: String!
+    data: Patient
 }
